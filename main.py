@@ -78,4 +78,7 @@ class Classifier(nn.Module):
     def forwrad(self,image):
         class_pred = self.classifier(image)
         return class_pred.view(len(class_pred),-1)
-    
+
+z_dim = 64
+batch_size = 128
+device = 'cuda'
