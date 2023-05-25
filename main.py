@@ -82,3 +82,23 @@ class Classifier(nn.Module):
 z_dim = 64
 batch_size = 128
 device = 'cuda'
+
+
+gen = Generator(z_dim).to(device)
+gen_dict = torch.load("pretrained_celeba.pth", map_location=torch.device(device))["gen"]
+gen.load_state_dict(gen_dict)
+gen.eval()
+
+n_classes = 40
+classifier = Classifier(n_classes=n_classes).to(device)
+class_dict = torch.load("pretrained_classifier.pth", map_location=torch.device(device))["classifier"]
+classifier.load_state_dict(class_dict)
+classifier.eval()
+print("Loaded the models!")
+
+opt = torch.optim.Adam(classifier.parameters(), lr=0.01)
+
+def update_noise(noise,weight):
+    new_noise = noise + noise.grad*weight
+    return new_noise
+
