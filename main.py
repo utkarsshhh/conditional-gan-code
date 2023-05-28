@@ -75,13 +75,13 @@ class Classifier(nn.Module):
                 nn.LeakyReLU(negative_slope=0.2,inplace=True)
             )
 
-    def forwrad(self,image):
+    def forward(self,image):
         class_pred = self.classifier(image)
         return class_pred.view(len(class_pred),-1)
 
 z_dim = 64
 batch_size = 128
-device = 'cuda'
+device = 'cpu'
 
 
 gen = Generator(z_dim).to(device)
@@ -101,4 +101,32 @@ opt = torch.optim.Adam(classifier.parameters(), lr=0.01)
 def update_noise(noise,weight):
     new_noise = noise + noise.grad*weight
     return new_noise
+
+# First generate a bunch of images with the generator
+n_images = 8
+fake_image_history = []
+grad_steps = 10 # Number of gradient steps to take
+skip = 2 # Number of gradient steps to skip in the visualization
+
+feature_names = ["5oClockShadow", "ArchedEyebrows", "Attractive", "BagsUnderEyes", "Bald", "Bangs",
+"BigLips", "BigNose", "BlackHair", "BlondHair", "Blurry", "BrownHair", "BushyEyebrows", "Chubby",
+"DoubleChin", "Eyeglasses", "Goatee", "GrayHair", "HeavyMakeup", "HighCheekbones", "Male",
+"MouthSlightlyOpen", "Mustache", "NarrowEyes", "NoBeard", "OvalFace", "PaleSkin", "PointyNose",
+"RecedingHairline", "RosyCheeks", "Sideburn", "Smiling", "StraightHair", "WavyHair", "WearingEarrings",
+"WearingHat", "WearingLipstick", "WearingNecklace", "WearingNecktie", "Young"]
+
+### Change me! ###
+target_indices = feature_names.index("Smiling") # Feel free to change this value to any string from feature_names!
+
+noise = generate_noise(n_images, z_dim).to(device).requires_grad_()
+for i in range(grad_steps):
+    opt.zero_grad()
+    fake = gen(noise)
+    fake_image_history += [fake]
+    fake_classes_score = classifier(fake)[:, target_indices].mean()
+    fake_classes_score.backward()
+    noise.data = update_noise(noise, 1 / grad_steps)
+
+plt.rcParams['figure.figsize'] = [n_images * 2, grad_steps * 2]
+show_tensor_images(torch.cat(fake_image_history[::skip], dim=2), num_images=n_images, nrow=n_images)
 
